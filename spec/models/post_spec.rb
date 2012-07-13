@@ -1,3 +1,4 @@
+require 'date'
 require 'minitest/autorun'
 require_relative '../spec_helper_lite'
 stub_module 'ActiveModel::Conversion'
@@ -30,7 +31,17 @@ describe Post do
     it.title.must_equal "mytitle"
     it.body.must_equal "mybody"
   end
-  
+  it "is not valid with a blank title" do
+    [nil, "", " "].each do |bad_title|
+      @it.title = bad_title
+      refute @it.valid?
+    end
+  end
+  it "is valid with a non-blank title" do
+    @it.title = "x"
+    assert @it.valid?
+  end
+
   describe "#publish" do
     before do
       @blog = MiniTest::Mock.new
@@ -44,6 +55,30 @@ describe Post do
     it "adds the post to the blog" do
       @blog.expect :add_entry, nil, [@it]
       @it.publish
+    end
+  end
+
+  describe "#pubdate" do
+    describe "before publishing" do
+      it "is blank" do
+        @it.pubdate.must_be_nil
+      end
+    end
+
+    describe "after publishing" do
+      before do
+        @clock = stub!
+        @now = DateTime.parse("2012-07-12T16:20")
+        stub(@clock).now(){@now}
+        @it.blog = stub!
+        @it.publish(@clock)
+      end
+      it "is a datetime" do
+        @it.pubdate.class.must_equal(DateTime)
+      end
+      it "is the current time" do
+        @it.pubdate.must_equal(@now)
+      end
     end
   end
 end
